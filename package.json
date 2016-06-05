@@ -1,0 +1,33 @@
+{
+  "name": "node-spider-man",
+  "version": "0.1.0",
+  "description": "The spider to grab the future of the internet using nodejs, defind patterns, get data.",
+  "main": "spiderMan.js",
+  "dependencies": {
+    "cheerio": "^0.20.0",
+    "promise": "^7.1.1",
+    "request": "^2.72.0"
+  },
+  "devDependencies": {
+    "request-as-curl": "^0.1.0"
+  }
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/DanielZhu/node-spider-man.git"
+  },
+  "keywords": [
+    "spider",
+    "node-spider",
+    "crawler",
+    "staydan"
+  ],
+  "author": "DanielZhu <enterzhu@gmail.com>",
+  "license": "Apache-2.0",
+  "bugs": {
+    "url": "https://github.com/DanielZhu/node-spider-man/issues"
+  },
+  "homepage": "https://github.com/DanielZhu/node-spider-man#readme"
+}
