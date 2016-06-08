@@ -3,7 +3,7 @@
 
 ## How to use
 
-`npm -i node-spider-man --save` 
+`npm install node-spider-man --save` 
 
 `var spiderMan = require('node-spider-man');`
 
