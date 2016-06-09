@@ -44,8 +44,17 @@ var spiderMan = function (opts) {
  *
  * @param {Object} [conf] task config
  */
-spiderMan.prototype.addQueue = function (conf) {
+spiderMan.prototype.appendQueue = function (conf) {
   this.taskQueue.push(conf);
+};
+
+/**
+ * Add element into the queue at the first index
+ *
+ * @param {Object} [conf] task config
+ */
+spiderMan.prototype.unshiftQueue = function (conf) {
+  this.taskQueue.unshift(conf);
 };
 
 /**
