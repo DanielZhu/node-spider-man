@@ -91,25 +91,17 @@ spiderMan.prototype.popFetchQueue = function () {
  */
 spiderMan.prototype.start = function () {
   var self = this;
-  var runCount = 0;
+
   while (this.checkQueue()) {
     (function () {
       var task = self.popQueue();
       if (task) {
-        self.addFetchQueue(function () {
-          self.execSpider(task).then(
-            function (response) {
-              self.done && self.done(JSON.parse(response));
-            },
-            function (error) {
-              console.log(JSON.stringify(error));
-            }
-          ).finally(function () {
-            runCount++;
-            console.log(new Date().getTime());
-          });
+        if (task.type === 'autoIncrease') {
+          task.url = task.urlGen();
+        }
 
-          console.log('runCount: ' + runCount);
+        self.addFetchQueue(function () {
+          return self.execSpider(task);
         });
       }
     })();
@@ -120,10 +112,30 @@ spiderMan.prototype.start = function () {
 
 spiderMan.prototype.spiderNow = function () {
   var self = this;
+  var runCount = 0;
   setTimeout(function () {
     if (self.fetchQueue.length > 0) {
-      self.popFetchQueue()();
-      self.fetchQueue.length > 0 && self.spiderNow();
+      self.popFetchQueue()().then(
+        function (response) {
+          self.done && self.done(response.data);
+          if (response.task.type === 'autoIncrease') {
+            var conf = Object.assign({}, response.task);
+            conf.url = response.task.urlGen(response.data);
+            if (conf.url) {
+              self.addFetchQueue(function () {
+                return self.execSpider(conf);
+              });
+            }
+          }
+        },
+        function (error) {
+          console.log(JSON.stringify(error));
+        }
+      ).finally(function () {
+        runCount++;
+        console.log('runCount: ' + runCount + '  ' + new Date().getTime());
+        self.fetchQueue.length > 0 && self.spiderNow();
+      });
     }
   }, this.delayFetch);
 };
@@ -148,29 +160,43 @@ spiderMan.prototype.execSpider = function (task) {
   if (task) {
     return new Promise(function (fulfill, reject) {
       var out = request(options, function (error, response, body) {
-        console.log(options.url);
-        console.log(response.statusCode);
+        // console.log(options.url);
         if (!error && response.statusCode === 200) {
           var $ = cheerio.load(body);
-          var result = [];
-          $(task.selector).each(function (index, item) {
-            var itemRes = {};
-            for (var i = 0; i < task.config.length; i++) {
-              var subConf = task.config[i];
-              var itemEl = $(item).find(subConf.selector);
+          var taskResult = {};
+          task.patterns.forEach(function (pattern) {
+            if (pattern.hasOwnProperty('config')) {
+              var patternArrayTypeResult = [];
+              $(pattern.selector).each(function (index, item) {
+                var itemRes = {};
+                for (var i = 0; i < pattern.config.length; i++) {
+                  var subPattern = pattern.config[i];
+                  var itemEl = $(item).find(subPattern.selector);
 
-              if (subConf.hasOwnProperty('fn')
-                && typeof subConf.fn === 'function') {
-                itemRes[subConf.key] = subConf.fn($, itemEl);
+                  if (subPattern.hasOwnProperty('fn')
+                    && typeof subPattern.fn === 'function') {
+                    itemRes[subPattern.key] = subPattern.fn($, itemEl);
+                  }
+                  else {
+                    itemRes[subPattern.key] = $(itemEl).text();
+                  }
+                }
+                patternArrayTypeResult.push(itemRes);
+              });
+              taskResult[pattern.key] = patternArrayTypeResult;
+            }
+            else {
+              if (pattern.hasOwnProperty('fn')
+                && typeof pattern.fn === 'function') {
+                taskResult[pattern.key] = pattern.fn($, $(pattern.selector));
               }
               else {
-                itemRes[subConf.key] = $(itemEl).text();
+                taskResult[pattern.key] = $(pattern.selector).text();
               }
             }
-            result.push(itemRes);
           });
 
-          fulfill(JSON.stringify(result));
+          fulfill({data: taskResult, task: task});
         }
         else {
           if (task.retryCount > 0) {
@@ -178,7 +204,7 @@ spiderMan.prototype.execSpider = function (task) {
             this.execSpider(task);
           }
           else {
-            reject();
+            reject('err');
           }
         }
       });
