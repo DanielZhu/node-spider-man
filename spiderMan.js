@@ -45,7 +45,18 @@ var spiderMan = function (opts) {
  * @param {Object} [conf] task config
  */
 spiderMan.prototype.appendQueue = function (conf) {
+  // console.log('new end: ' + conf.key + ' ' + conf.url);
+  var self = this;
   this.taskQueue.push(conf);
+
+  // To init the url of autoIncrease type conf at the very beginning
+  if (conf.type === 'autoIncrease' && conf.url.trim().length === 0) {
+    conf.url = conf.urlGen();
+  }
+
+  this.addFetchQueue(function () {
+    return self.execSpiderFetch(conf);
+  });
 };
 
 /**
@@ -54,7 +65,18 @@ spiderMan.prototype.appendQueue = function (conf) {
  * @param {Object} [conf] task config
  */
 spiderMan.prototype.unshiftQueue = function (conf) {
+  // console.log('new start: ' + conf.key + ' ' + conf.url);
+  var self = this;
   this.taskQueue.unshift(conf);
+
+  // To init the url of autoIncrease type conf at the very beginning
+  if (conf.type === 'autoIncrease' && conf.url.trim().length === 0) {
+    conf.url = conf.urlGen();
+  }
+
+  this.unshiftFetchQueue(function () {
+    return self.execSpiderFetch(conf);
+  });
 };
 
 /**
@@ -71,8 +93,8 @@ spiderMan.prototype.popQueue = function () {
  *
  * @return {boolean} Result
  */
-spiderMan.prototype.checkQueue = function () {
-  return this.taskQueue.length > 0;
+spiderMan.prototype.checkFetchQueue = function () {
+  return this.fetchQueue.length > 0;
 };
 
 /**
@@ -82,6 +104,15 @@ spiderMan.prototype.checkQueue = function () {
  */
 spiderMan.prototype.addFetchQueue = function (fetch) {
   this.fetchQueue.push(fetch);
+};
+
+/**
+ * Add element into the queue at the first index
+ *
+ * @param {Object} [fetch] task config
+ */
+spiderMan.prototype.unshiftFetchQueue = function (fetch) {
+  this.fetchQueue.unshift(fetch);
 };
 
 /**
@@ -100,30 +131,9 @@ spiderMan.prototype.popFetchQueue = function () {
  */
 spiderMan.prototype.start = function () {
   var self = this;
-
-  while (this.checkQueue()) {
-    (function () {
-      var task = self.popQueue();
-      if (task) {
-        if (task.type === 'autoIncrease') {
-          task.url = task.urlGen();
-        }
-
-        self.addFetchQueue(function () {
-          return self.execSpider(task);
-        });
-      }
-    })();
-  }
-
-  this.spiderNow();
-};
-
-spiderMan.prototype.spiderNow = function () {
-  var self = this;
   var runCount = 0;
   setTimeout(function () {
-    if (self.fetchQueue.length > 0) {
+    if (self.checkFetchQueue()) {
       self.popFetchQueue()().then(
         function (response) {
           self.done && self.done(response.data);
@@ -131,9 +141,7 @@ spiderMan.prototype.spiderNow = function () {
             var conf = Object.assign({}, response.task);
             conf.url = response.task.urlGen(response.data);
             if (conf.url) {
-              self.addFetchQueue(function () {
-                return self.execSpider(conf);
-              });
+              self.appendQueue(conf);
             }
           }
         },
@@ -142,11 +150,15 @@ spiderMan.prototype.spiderNow = function () {
         }
       ).finally(function () {
         runCount++;
-        console.log('runCount: ' + runCount + '  ' + new Date().getTime());
-        self.fetchQueue.length > 0 && self.spiderNow();
+        // console.log('runCount: ' + runCount + '  ' + new Date().getTime());
+        self.fetchQueue.length > 0 && self.startAgain.call(self);
       });
     }
   }, this.delayFetch);
+};
+
+spiderMan.prototype.startAgain = function () {
+  this.start();
 };
 
 /**
@@ -154,7 +166,7 @@ spiderMan.prototype.spiderNow = function () {
  *
  * @param  {Object} task The configuration in the queue
  */
-spiderMan.prototype.execSpider = function (task) {
+spiderMan.prototype.execSpiderFetch = function (task) {
   if (!task) {
     task = this.popQueue();
   }
@@ -166,13 +178,13 @@ spiderMan.prototype.execSpider = function (task) {
     }
   };
 
-  if (task) {
+  if (task && task.hasOwnProperty('url') && task.url.trim().length > 0) {
     return new Promise(function (fulfill, reject) {
       var out = request(options, function (error, response, body) {
-        // console.log(options.url);
         if (!error && response.statusCode === 200) {
           var $ = cheerio.load(body);
           var taskResult = {};
+          console.log('### request: ' + task.url);
           task.patterns.forEach(function (pattern) {
             if (pattern.hasOwnProperty('config')) {
               var patternArrayTypeResult = [];
@@ -210,10 +222,10 @@ spiderMan.prototype.execSpider = function (task) {
         else {
           if (task.retryCount > 0) {
             task.retryCount--;
-            this.execSpider(task);
+            this.execSpiderFetch(task);
           }
           else {
-            reject('err');
+            reject(error);
           }
         }
       });
