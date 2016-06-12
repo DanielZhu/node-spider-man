@@ -163,20 +163,22 @@ spiderMan.prototype.start = function () {
         // console.log('runCount: ' + runCount + '  ' + new Date().getTime());
         // For sync mode
         if (self.execMode === 'sync') {
-          self.startAgain.call(self);
-          if (self.fetchQueue.length === 0) {
+          if (!self.checkFetchQueue()) {
             console.log('\n\n Spider\'s still running, but no job in the pool now. timestamp: ' + new Date().getTime());
+            self.queueDone && self.queueDone();
           }
+          self.startAgain.call(self);
         }
       });
     }
 
     // For async mode
     if (self.execMode === 'async') {
-      self.startAgain.call(self);
-      if (self.fetchQueue.length === 0) {
+      if (!self.checkFetchQueue()) {
         console.log('\n\ Spider\'s still running, but no job in the pool now. timestamp: ' + new Date().getTime());
+        self.queueDone && self.queueDone();
       }
+      self.startAgain.call(self);
     }
   }, this.delayFetch);
 };
