@@ -44,9 +44,14 @@ var spiderMan = function (opts) {
   this.delayFetch = opts.delayFetch || 3000;
 
   /**
-   * Detail with final data outsie the spiderMan
+   * Detail with final data outsie the spiderMan each time the task complete
    */
   this.done = opts.done || function () {};
+
+  /**
+   * Detail with final data outsie the spiderMan after the queue is empty
+   */
+  this.queueDone = opts.queueDone || function () {};
 };
 
 /**
