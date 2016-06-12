@@ -26,12 +26,22 @@ var spiderMan = function (opts) {
   this.fetchQueue = [];
 
   /**
+   * execMode
+   *
+   * sync: Execute each fetchTask after the previous one finished
+   * async: Execute each fetchTask after the delayFetch time
+   *
+   * default to sync
+   */
+  this.execMode = opts.execMode || 'sync';
+
+  /**
    * Waiting time before each fetch task starts
    *
-   * default to 2000ms
+   * default to 3000ms
    * @type {Number}
    */
-  this.delayFetch = opts.delayFetch || 2000;
+  this.delayFetch = opts.delayFetch || 3000;
 
   /**
    * Detail with final data outsie the spiderMan
@@ -151,8 +161,22 @@ spiderMan.prototype.start = function () {
       ).finally(function () {
         runCount++;
         // console.log('runCount: ' + runCount + '  ' + new Date().getTime());
-        self.fetchQueue.length > 0 && self.startAgain.call(self);
+        // For sync mode
+        if (self.execMode === 'sync') {
+          self.startAgain.call(self);
+          if (self.fetchQueue.length === 0) {
+            console.log('\n\n Spider\'s still running, but no job in the pool now. timestamp: ' + new Date().getTime());
+          }
+        }
       });
+    }
+
+    // For async mode
+    if (self.execMode === 'async') {
+      self.startAgain.call(self);
+      if (self.fetchQueue.length === 0) {
+        console.log('\n\ Spider\'s still running, but no job in the pool now. timestamp: ' + new Date().getTime());
+      }
     }
   }, this.delayFetch);
 };
@@ -180,11 +204,11 @@ spiderMan.prototype.execSpiderFetch = function (task) {
 
   if (task && task.hasOwnProperty('url') && task.url.trim().length > 0) {
     return new Promise(function (fulfill, reject) {
+      console.log('### request: ' + new Date().getSeconds() + ' / ' + task.url);
       var out = request(options, function (error, response, body) {
         if (!error && response.statusCode === 200) {
           var $ = cheerio.load(body);
           var taskResult = {};
-          console.log('### request: ' + task.url);
           task.patterns.forEach(function (pattern) {
             if (pattern.hasOwnProperty('config')) {
               var patternArrayTypeResult = [];
