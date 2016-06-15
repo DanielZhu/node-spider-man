@@ -1,6 +1,15 @@
 # node-spider-man
 [![NPM version][npm-version-image]][npm-url] [![Downloads][downloads-image]][npm-url] [![License][license-image]][npm-url] 
 
+## Features
+
+- Transform the page into JSON format response according to the rules
+- Use fetchQueue to manage the fetchRequests in the order
+- Support sync and async mode.  
+  - sync: Execute each fetchTask after the previous one finished
+  - async: Execute each fetchTask after the delayFetch time
+- Support queue finished callback
+
 ## How to use
 
 `npm install node-spider-man --save` 
