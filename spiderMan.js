@@ -13,6 +13,14 @@ var curlify = require('request-as-curl');
 var spiderMan = function (opts) {
 
   /**
+   * Name for spiderName
+   * @type {Array}
+   */
+  this.spiderManName = opts.spiderManName || 'No_Name_Guy';
+
+  // this.runningStatus = 'ready'; // ready, running, finish, waiting
+
+  /**
    * Current spiderMan tasks list
    * @type {Array}
    */
@@ -131,12 +139,21 @@ spiderMan.prototype.unshiftFetchQueue = function (fetch) {
 };
 
 /**
- * Pop the first element of the queue
+ * Pop the first element of the fetchQueue
  *
- * @return {Object} element of queue
+ * @return {Object} element of fetchQueue
  */
 spiderMan.prototype.popFetchQueue = function () {
   return this.fetchQueue.length > 0 ? this.fetchQueue.shift() : false;
+};
+
+/**
+ * Get the total count of the fetchQueue
+ *
+ * @return {Object} element of fetchQueue
+ */
+spiderMan.prototype.getFetchQueueCount = function () {
+  return this.fetchQueue.length || 0;
 };
 
 /**
@@ -168,8 +185,8 @@ spiderMan.prototype.start = function () {
         // console.log('runCount: ' + runCount + '  ' + new Date().getTime());
         // For sync mode
         if (self.execMode === 'sync') {
+          console.log('Tasks remain in queue for ' + self.spiderManName + ' : ' + self.getFetchQueueCount());
           if (!self.checkFetchQueue()) {
-            console.log('\n\n Spider\'s still running, but no job in the pool now. timestamp: ' + new Date().getTime());
             self.queueDone && self.queueDone();
           }
           self.startAgain.call(self);
@@ -180,7 +197,7 @@ spiderMan.prototype.start = function () {
     // For async mode
     if (self.execMode === 'async') {
       if (!self.checkFetchQueue()) {
-        console.log('\n\ Spider\'s still running, but no job in the pool now. timestamp: ' + new Date().getTime());
+        console.log('Tasks remain in queue for ' + self.spiderManName + ' : ' + self.getFetchQueueCount());
         self.queueDone && self.queueDone();
       }
       self.startAgain.call(self);
@@ -214,7 +231,9 @@ spiderMan.prototype.execSpiderFetch = function (task) {
       console.log('### request: ' + new Date().getSeconds() + ' / ' + task.url);
       var out = request(options, function (error, response, body) {
         if (!error && response.statusCode === 200) {
-          var $ = cheerio.load(body);
+          var $ = cheerio.load(body, {
+            decodeEntities: false
+          });
           var taskResult = {};
           task.patterns.forEach(function (pattern) {
             if (pattern.hasOwnProperty('config')) {
