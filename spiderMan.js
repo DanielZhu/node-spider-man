@@ -24,7 +24,7 @@ var spiderMan = function (opts) {
    * Current spiderMan tasks list
    * @type {Array}
    */
-  this.taskQueue = [];
+  // this.taskQueue = [];
 
   /**
    * [fetchQueue description]
@@ -42,6 +42,13 @@ var spiderMan = function (opts) {
    * default to sync
    */
   this.execMode = opts.execMode || 'sync';
+
+  /**
+   * retryCount for one task
+   *
+   * @type {Integer}
+   */
+  this.retryCount = opts.retryCount || 0;
 
   /**
    * Waiting time before each fetch task starts
@@ -70,7 +77,7 @@ var spiderMan = function (opts) {
 spiderMan.prototype.appendQueue = function (conf) {
   // console.log('new end: ' + conf.key + ' ' + conf.url);
   var self = this;
-  this.taskQueue.push(conf);
+  // this.taskQueue.push(conf);
 
   // To init the url of autoIncrease type conf at the very beginning
   if (conf.type === 'autoIncrease' && conf.url.trim().length === 0) {
@@ -90,7 +97,7 @@ spiderMan.prototype.appendQueue = function (conf) {
 spiderMan.prototype.unshiftQueue = function (conf) {
   // console.log('new start: ' + conf.key + ' ' + conf.url);
   var self = this;
-  this.taskQueue.unshift(conf);
+  // this.taskQueue.unshift(conf);
 
   // To init the url of autoIncrease type conf at the very beginning
   if (conf.type === 'autoIncrease' && conf.url.trim().length === 0) {
@@ -108,7 +115,7 @@ spiderMan.prototype.unshiftQueue = function (conf) {
  * @return {Object} element of queue
  */
 spiderMan.prototype.popQueue = function () {
-  return this.taskQueue.length > 0 ? this.taskQueue.shift() : false;
+  // return this.taskQueue.length > 0 ? this.taskQueue.shift() : false;
 };
 
 /**
@@ -127,6 +134,7 @@ spiderMan.prototype.checkFetchQueue = function () {
  */
 spiderMan.prototype.addFetchQueue = function (fetch) {
   this.fetchQueue.push(fetch);
+  console.log('Tasks remain in queue for ' + this.spiderManName + ' : ' + this.getFetchQueueCount());
 };
 
 /**
@@ -136,6 +144,7 @@ spiderMan.prototype.addFetchQueue = function (fetch) {
  */
 spiderMan.prototype.unshiftFetchQueue = function (fetch) {
   this.fetchQueue.unshift(fetch);
+  console.log('Tasks remain in queue for ' + this.spiderManName + ' : ' + this.getFetchQueueCount());
 };
 
 /**
@@ -176,21 +185,27 @@ spiderMan.prototype.start = function () {
               self.appendQueue(conf);
             }
           }
+
+          if (self.execMode === 'sync') {
+            console.log('Tasks remain in queue for ' + self.spiderManName + ' : ' + self.getFetchQueueCount());
+            if (!self.checkFetchQueue()) {
+              self.queueDone && self.queueDone();
+            }
+            self.startAgain.call(self);
+          }
         },
         function (error) {
           console.log(JSON.stringify(error));
+          if (self.execMode === 'sync') {
+            console.log('Tasks remain in queue for ' + self.spiderManName + ' : ' + self.getFetchQueueCount());
+            if (!self.checkFetchQueue()) {
+              self.queueDone && self.queueDone();
+            }
+            self.startAgain.call(self);
+          }
         }
       ).finally(function () {
         runCount++;
-        // console.log('runCount: ' + runCount + '  ' + new Date().getTime());
-        // For sync mode
-        if (self.execMode === 'sync') {
-          console.log('Tasks remain in queue for ' + self.spiderManName + ' : ' + self.getFetchQueueCount());
-          if (!self.checkFetchQueue()) {
-            self.queueDone && self.queueDone();
-          }
-          self.startAgain.call(self);
-        }
       });
     }
 
@@ -215,9 +230,9 @@ spiderMan.prototype.startAgain = function () {
  * @param  {Object} task The configuration in the queue
  */
 spiderMan.prototype.execSpiderFetch = function (task) {
-  if (!task) {
-    task = this.popQueue();
-  }
+  // if (!task) {
+  //   task = this.popQueue();
+  // }
 
   var options = {
     url: task.url,
