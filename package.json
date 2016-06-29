@@ -1,6 +1,6 @@
 {
   "name": "node-spider-man",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "The spider to grab the future of the internet using nodejs, defind patterns, get data.",
   "main": "spiderMan.js",
   "dependencies": {
