@@ -9,6 +9,7 @@
   - sync: Execute each fetchTask after the previous one finished
   - async: Execute each fetchTask after the delayFetch time
 - Support queue finished callback
+- Support to PAUSE or CONTINUE the spider's work(>=0.3.0)
 
 ## How to use
 
