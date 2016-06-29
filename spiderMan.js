@@ -43,6 +43,8 @@ var spiderMan = function (opts) {
    */
   this.execMode = opts.execMode || 'sync';
 
+  this.paused = false;
+
   /**
    * retryCount for one task
    *
@@ -166,6 +168,27 @@ spiderMan.prototype.getFetchQueueCount = function () {
 };
 
 /**
+ * Pause the spider for a moment
+ */
+spiderMan.prototype.pause = function () {
+  if (!this.paused) {
+    this.paused = true;
+    console.log('\n### Paused...' + this.spiderManName + ' ...at : ' + this.getFetchQueueCount() + '\n');
+  }
+};
+
+/**
+ * Continue to run the spider
+ */
+spiderMan.prototype.continue = function () {
+  if (this.paused) {
+    this.paused = false;
+    console.log('\n### Continue...' + this.spiderManName + ' ...from : ' + this.getFetchQueueCount() + '\n');
+    this.startAgain.call(this);
+  }
+};
+
+/**
  * Start the SpiderMan
  *
  * @param  {Function} cb Callback function executed after spiderMan finished
@@ -221,7 +244,7 @@ spiderMan.prototype.start = function () {
 };
 
 spiderMan.prototype.startAgain = function () {
-  this.start();
+  !this.paused && this.start();
 };
 
 /**
